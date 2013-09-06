@@ -18,7 +18,7 @@ Thus we use the protocol described under `docs/DiscoveryProtocol.md`.
 """
 
 import logging
-log = logging.getlogger("galah_installer.discovery")
+log = logging.getlogger("gi.discovery")
 
 import config
 
@@ -64,9 +64,6 @@ def discover(software_list):
 			len(response.getvalue()) < _MAX_RESPONSE_SIZE and
 			timeout.isdone()):
 		response.write(str(ssl_socket.recv(_MAX_RESPONSE_SIZE)))
-		
-	
-
 
 def _connect(endpoint):
 	"""
