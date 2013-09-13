@@ -31,6 +31,9 @@ import tempfile
 import os
 import pkg_resources
 
+RSA_KEY_LENGTH = 16384
+"The number of bits in the RSA keys used in signatures."
+
 def _get_file_simple(con, path, max_size):
 	"""
 	Performs a simple HTTP GET request to retrieve a particular file and stores
@@ -105,6 +108,13 @@ def get_file(server, path, timeout, max_size):
 		sig_path = get_file_simple(con, path + ".sig", max_size)
 
 		log.info("Verifying file+signature.")
+		pub_key_path = config.get("gicore/PUB_KEY_PATH")
+		if pub_key_path != None:
+			with open(pub_key_path, "rb") as f:
+				pub_key_raw = f.read()
+		else:
+			pub_key_raw = pkg_resources.resource_string(
+				"gicore", "gg-release-key.pub.der")
 		if not verify_file(file_path, sig_path):
 			raise errors.VerificationError("%s/%s" % (server, path))
 	except:

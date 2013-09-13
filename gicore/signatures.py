@@ -12,9 +12,9 @@ public key (distributed with the installer). The hash algorithm used is
 """
 
 # pycrypto
-import Crypto.Hash
-import Crypto.Signature
-import Crypto.PublicKey
+import Crypto.Hash.SHA512
+import Crypto.PublicKey.RSA
+import Crypto.Signature.PKCS1_PSS
 
 def hash_file_sha512(the_file):
 	CHUNK_SIZE = 1024
@@ -24,9 +24,9 @@ def hash_file_sha512(the_file):
 		if len(chunk) == 0:
 			break
 		file_hash.update(chunk)
-	return the_file
+	return file_hash
 
-def verify_file(the_file, signature_file, pub_key_file):
+def verify_file(the_file, signature_file, key):
 	"""
 	Verifies that a file and signature file pair are valid and signed with the
 	appropriate public key.
@@ -38,8 +38,8 @@ def verify_file(the_file, signature_file, pub_key_file):
 
 	:param the_file: A file object to check.
 	:param signature_file: A file object containing the signature file.
-	:param pub_key_file: A file object containing the public key to verify
-			with.
+	:param key: An RSA key object as returned by
+			`Crypto.PublicKey.RSA.importKey`.
 
 	:returns: `True` if the verification was succesful, `False` otherwise.
 
@@ -53,14 +53,12 @@ def verify_file(the_file, signature_file, pub_key_file):
 	# 	pub_key_raw = pkg_resources.resource_string(
 	# 		"gicore", "gg-release-key.pub.der")
 
-	pub_key = Crypto.PublicKey.RSA.importKey(pub_key_file.read())
-	verifier = Crypto.Signature.PKCS1_PSS.new(pub_key)
+	verifier = Crypto.Signature.PKCS1_PSS.new(key)
 	file_hash = hash_file_sha512(the_file)
 	signature = signature_file.read()
 	return verifier.verify(file_hash, signature)
 
-def sign_file(the_file, private_key_file):
-	private_key = Crypto.PublicKey.RSA.importKey(private_key_file.read())
-	signer = Crypto.Signature.PKCS1_PSS.new(private_key)
+def sign_file(the_file, key):
+	signer = Crypto.Signature.PKCS1_PSS.new(key)
 	file_hash = hash_file_sha512(the_file)
 	return signer.sign(file_hash)

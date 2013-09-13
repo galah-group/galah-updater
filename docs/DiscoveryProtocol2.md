@@ -14,7 +14,7 @@ The Galah-Installer can run remotely pulled installation scripts with strong pri
 
 All files pulled over the Internet have signatures associated with them. These signatures are generated in accordance with RSASSA-PSS as defined in [RFC3447](http://www.ietf.org/rfc/rfc3447.txt) (page 29), and the implementation provided by PyCrypto is used. For some great analysis of the RSASSA-PSS algorithm, see [this paper](http://rsapss.hboeck.de/rsapss.pdf).
 
-All files should be verified against its signature and the trusted public key distributed with the installer. The hash algorithm used is `SHA-512` (SHA-2 with an output size of 512 bits). The RSA key length when signing is currently 30720 bits.
+All files should be verified against its signature and the trusted public key distributed with the installer. The hash algorithm used is `SHA-512` (SHA-2 with an output size of 512 bits). The RSA key length when signing is currently 16384 bits.
 
 ### DOS
 
