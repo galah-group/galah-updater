@@ -1,5 +1,17 @@
 #!/usr/bin/env python
 
+"""
+This is a small profiling script used to determine how long it takes to verify
+a file's signature.
+
+.. note::
+
+	John (9/13/2013): I ran this with a key size of 16384 bits and the
+	verification time was negligible on my system. It is unlikely to be a
+	problem for our application.
+
+"""
+
 # internal
 import gicore.signatures
 import gicore.discovery
