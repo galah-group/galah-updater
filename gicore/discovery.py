@@ -20,94 +20,106 @@ Thus we use the protocol described under `docs/DiscoveryProtocol.md`.
 import logging
 log = logging.getlogger("gi.discovery")
 
+# gicore
 import config
+import errors
 
-_DISCOVERY_PROTOCOL_VERSION = 1
-"""The version of the discovery protocol we're using."""
+# stdlib
+import urlparse
+import httplib
+import tempfile
+import os
+import pkg_resources
 
-_MAX_REQUEST_SIZE = 5000
-"""The maximum size of a discovery request in bytes."""
-
-_MAX_RESPONSE_SIZE = 10000
-"""The maximum size of a discovery response in bytes."""
-
-def get_endpoint():
+def _get_file_simple(con, path, max_size):
 	"""
-	Returns the location and port of the Galah Group endpoint we will
-	access when discovering software in a tuple `(HOST, PORT)`.
+	Performs a simple HTTP GET request to retrieve a particular file and stores
+	it in a secure (inaccessible by other users), temporary file.
 
-	"""
-
-	return config.get("gicore/DISCOVERY_ENDPOINT")
-
-def discover(software_list):
-	log.info(
-		"Connecting to discovery endpoint at %s on port %d",
-		endpoint[0],
-		endpoint[1]
-	)
-	ssl_socket = _connect(get_endpoint())
-
-	request = _form_request(software_list)
-	log.debug("Sending request: %s", request)
-	ssl_socket.sendall(request)
-
-	log.info("Waiting for discovery response from server.")
-
-	# The first part of the response, up to a comma, is the number of
-	# bytes that will be in the payload.
-	import StringIO
-	import select
-	response = StringIO.StringIO()
-	timeout = utils.timeout(_RESPONSE_TIMEOUT)
-	while ("," not in response.getvalue() and
-			len(response.getvalue()) < _MAX_RESPONSE_SIZE and
-			timeout.isdone()):
-		response.write(str(ssl_socket.recv(_MAX_RESPONSE_SIZE)))
-
-def _connect(endpoint):
-	"""
-	Connects to the Galah Group endpoint and returns a SSL Socket.
-
-	:param endpoint: The endpoint to connect to in a tuple `(HOST, PORT)`.
+	:param con: An HTTP connection that is not awaiting a response (so it is
+			safe to make a request on it).
+	:param path: A path to the file on the server. Should begin with a slash.
 
 	"""
 
-	import socket
-	raw_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	con.request("GET", path)
+	response = con.getresponse()
+	if response.status != httplib.OK:
+		raise IOError("Server returned %d error code." % (response.status, ))
 
-	import ssl
-	ssl_socket = ssl.wrap_socket(
-		raw_socket,
-		ssl_version = ssl.SSLv3,
-		cert_reqs = CERT_REQUIRE
-	)
-	ssl_socket.connect(get_endpoint())
+	os_handle, path = tempfile.mkstemp()
+	f = None
+	try:
+		f = os.fdopen(os_handle, mode = "wb")
+		chunk_size = chunk_size
+		max_file_size = max_size
+		bytes_read = 0
+		CHUNK_SIZE = 1024
+		while True:
+			chunk = response.read(1024)
+			f.write(chunk)
+			bytes_read += chunk_size
+			if bytes_read > max_file_size:
+				raise IOError("File exceeds max download size.")
+		return path
+	except:
+		os.remove(path)
+		raise
+	finally:
+		# f could be none if the call to fdopen raises an exception.
+		if f is None:
+			os.close(os_handle)
+		else:
+			f.close()
 
-	return ssl_socket
-
-def _form_request(software_list):
+def get_file(server, path, timeout, max_size):
 	"""
-	Forms a discovery request through an SSL Socket for the software in
-	`software_list`.
+	Securely retrieves a file from the configured discovery server (set by
+	`gicore/DISCOVERY_SERVER`).
+
+	The file's origin and integrity is checked, but the transfer of the file is
+	not encrypted, thus observers could peek into your traffic and see what is
+	being transferred, they would not be able to modify the file or swap it for
+	their own however (unless of course they have the release private key).
+
+	:param server: The hostname or IP address of the server.
+	:param path: The path of the file on the server (ex: `/folder/file.json`).
+	:param timeout: The number of seconds to wait for each blocking network
+			operation (such as connection or waiting for the next chunk of
+			data).
+	:param max_size: The maximum size of the file in bytes.
+
+	:returns: A path to the downloaded files as a tuple (file, signature).
+			Both file's permissions are set to 600 and owned by the current
+			user.
 
 	"""
 
-	payload = []
-	for i in software_list:
-		payload.append({
-			"software": str(i.software),
-			"version": str(i.version)
-		})
+	con = httplib.HTTPConnection(host = server, timeout = timeout)
+	file_path = None
+	sig_path = None
+	try:
+		log.info("Getting file '%s'", path)
+		file_path = get_file_simple(con, path, max_size)
+		log.info("Getting signature for file '%s'", path)
+		sig_path = get_file_simple(con, path + ".sig", max_size)
 
-	import utils
-	json = utils.json_module()
-	payload_text = str(json.dumps(payload))
+		log.info("Verifying file+signature.")
+		if not verify_file(file_path, sig_path):
+			raise errors.VerificationError("%s/%s" % (server, path))
+	except:
+		if file_path is not None:
+			try:
+				os.remove(file_path)
+			except:
+				log.exception("Could not delete file %s.", file_path)
+		if sig_path is not None:
+			try:
+				os.remove(sig_path)
+			except:
+				log.exception("Could not delete signature file %s.", sig_path)
+		raise
+	finally:
+		con.close()
 
-	request = "%s,%s,%s" % (
-		str(_DISCOVERY_PROTOCOL_VERSION),
-		len(payload_text)
-		str(payload_text)
-	)
-
-	return str(request)
+	return file_path, sig_path

@@ -1,6 +1,6 @@
 # Galah-Installer Protocol Version 1
 
-The Galah-Installer application needs to be able to do a number of network related things securely:
+The Galah-Installer application needs to be able to do a number of network related tasks securely:
 
  * Determine whether the current version of some program (Galah or dependencies) is up to date.
  * Determine where to find a particular version of some program.
@@ -8,17 +8,28 @@ The Galah-Installer application needs to be able to do a number of network relat
 
 ## Security Considerations
 
-PGP is used throughout Galah-Installer. The latest version of GnuPG should be used to do the encryption. Galah-Installer is capable of keeping GnuPG up to date, but a working version of the program must be available on the system to begin with (chicken and egg problem).
+The Galah-Installer can run remotely pulled installation scripts with strong privileges on potentially powerful servers. Therefore security is of utmost concern and importance in its design.
 
-Because Galah-Installer uses vanilla HTTP for its communication with the outside world, it may be vulnerable to a man-in-the-middle attack where the attacker DoS's the program by sending a super massive file from a request. Therefore maximum file sizes should be strictly enforced.
+### Signatures
+
+All files pulled over the Internet have signatures associated with them. These signatures are generated in accordance with RSASSA-PSS as defined in [RFC3447](http://www.ietf.org/rfc/rfc3447.txt) (page 29), and the implementation provided by PyCrypto is used. For some great analysis of the RSASSA-PSS algorithm, see [this paper](http://rsapss.hboeck.de/rsapss.pdf).
+
+All files should be verified against its signature and the trusted public key distributed with the installer. The hash algorithm used is `SHA-512` (SHA-2 with an output size of 512 bits). The RSA key length when signing is currently 30720 bits.
+
+### DOS
+
+Because Galah-Installer uses HTTP for its communication with the outside world, it may be vulnerable to a man-in-the-middle attack where the attacker DoS's the program by sending a massive file from a request. Therefore maximum file sizes should be strictly enforced.
+
+### Compromised Private Key
+
+Though vulnerabilities due to Galah-Installer's use of cryptographic functions are certainly possible that would allow successful attacks, it is doubtful that such an attack would occur. A more likely attack is compromise of the key used to make releases combined with an attack to trick the installer into pulling down a malicious file. Such an attack would be very dangerous.
 
 ## Discovery
 
-The first time Galah-Installer starts up, it should send a `GET` request for `http://gi.galahgroup.com/version-listing.json` and `http://gi.galahgroup.com/version-listing.json.pgp`. AFTER verifying that the file is properly signed with the stored key (by default, the *Galah Group Release Key*), it should parse the JSON data which will be laid out as follows.
+The first time Galah-Installer starts up, it should send a `GET` request for `http://gi.galahgroup.com/version-listing.json` and `http://gi.galahgroup.com/version-listing.json.sig`. AFTER verifying that the file is properly signed with the correct key, it should parse the JSON data which will be laid out as follows.
 
 ```json
 {
-	"GnuPG": ["1.0.0", "2.0.1"],
 	"galah-installer": ["0.1.0", "0.1.1"],
 	"galah-core/web": ["0.2.0", "0.2.1", "0.2.2"],
 	"galah-core/sisyphus": ["0.2.0", "0.2.1", "0.2.2"],
@@ -31,7 +42,7 @@ The first time Galah-Installer starts up, it should send a `GET` request for `ht
 }
 ```
 
-The version number will be listed in order, and Galah-Installer should assume that the last item in each list is the latest version. Currently, versions are released following the rules laid out by [Semantic Versioning 2.0.0](http://semver.org/spec/v2.0.0.html) but this may change in the future. Galah-Installer should not do any sorting itself, though it may do a sanity check and refuse to update if the ordering is not what it thinks it should be.
+The version numbers will be listed in order, and Galah-Installer should assume that the last item in each list is the latest version. Currently, versions are released following the rules laid out by [Semantic Versioning 2.0.0](http://semver.org/spec/v2.0.0.html) but this may change in the future. Galah-Installer should not do any sorting itself, though it may do a sanity check and refuse to update if the ordering is not what it thinks it should be.
 
 If `DISCONTINUED` is listed as the most recent version, the program is no longer supported and should be uninstalled. A program may be resumed after it has been discontinued, in which case the `DISCONTINUED` string will be removed from the list and versions will proceed normally.
 
@@ -39,7 +50,7 @@ Galah-Installer should cache the version listing files and the HTTP headers rece
 
 ## Getting Specific Version Info
 
-After the Galah-Installer has decided that it needs to upgrade (or downgrade) it should send a `GET` request to `http://gi.galahgroup.com/version-info/PROGRAM-NAME/VERSION.json` (ex: `http://gi.galahgroup.com/galah-core/sheep/1.0.3.json`) and its corresponding PGP key (`http://gi.galahgroup.com/version-info/PROGRAM-NAME/VERSION.json.pgp`). It should also grab the versions between the version being moved to and the old version so no migrations are missed. AFTER verifying the JSON file is properly signed, Galah-Installer should parse the JSON and see something like the following.
+After the Galah-Installer has decided that it needs to upgrade (or downgrade) it should send a `GET` request to `http://gi.galahgroup.com/version-info/PROGRAM-NAME/VERSION.json` (ex: `http://gi.galahgroup.com/galah-core/sheep/1.0.3.json`) and its corresponding signature (`http://gi.galahgroup.com/version-info/PROGRAM-NAME/VERSION.json.sig`). It should also grab the versions between the version being moved to and the old version so no migrations are missed. AFTER verifying the JSON file(s) is properly signed, Galah-Installer should parse the JSON and see something like the following.
 
 ```json
 {
@@ -66,4 +77,8 @@ After the Galah-Installer has decided that it needs to upgrade (or downgrade) it
 
 **migrations** lists any database programs that need to have migrations performed on them. When upgrading/downgrading from one version to another, all migrations between the two version must be performed. To keep things simple, only the program `galah-core/models` will have migrations.
 
-The various **mirrors** lists specify where to find necessary files. Each location should be hit from left to right (so the first item in the list should be hit first, and if that URL is down the next is tried). Each file has a corresponding PGP signature that can be found by adding the extension `.pgp` to the end of the file name. Signatures should always be verified before the data received is interpreted at all.
+The various **mirrors** lists specify where to find necessary files. Each location should be hit from left to right (so the first item in the list should be hit first, and if that URL is down the next is tried). Each file has a corresponding signature that can be found by adding the extension `.sig` to the end of the file name. Signatures should always be verified before the data received is interpreted at all.
+
+## Performing Updates
+
+If an update is available for Galah-Installer, that update *must* be applied before any other updates.
