@@ -1,14 +1,10 @@
 #!/usr/bin/env python
 
-import logging
-log = logging.getLogger("gi.test.signatures")
-
 # internal
 import gicore.signatures
 
 # pycrypto
 import Crypto.PublicKey.RSA
-import Crypto.Signature.PKCS1_PSS
 
 # stdlib
 import unittest
