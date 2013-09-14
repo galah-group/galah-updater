@@ -18,7 +18,7 @@ All files should be verified against its signature and the trusted public key di
 
 ### DOS
 
-Because Galah-Installer uses HTTP for its communication with the outside world, it may be vulnerable to a man-in-the-middle attack where the attacker DoS's the program by sending a massive file from a request. Therefore maximum file sizes should be strictly enforced.
+Because Galah-Installer uses HTTP for its communication with the outside world, it may be vulnerable to a man-in-the-middle attack where the attacker DoS's the program by sending an HTTP response that is super massive and fills up the file system. This attack vector is unlikely as it requires strong access to the network, however, it can be mitigated through the use of a paranoid HTTP library.
 
 ### Compromised Private Key
 
