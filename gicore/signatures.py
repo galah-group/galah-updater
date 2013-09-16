@@ -59,6 +59,17 @@ def verify_file(the_file, signature_file, key):
 	return verifier.verify(file_hash, signature)
 
 def sign_file(the_file, key):
+	"""
+	Creates a signature for a file.
+
+	:param the_file: A file object with data that needs signing.
+	:param key: A private key that will be used for the signing as would be
+			returned by `Crypto.PublicKey.RSA.importKey`.
+
+	:returns: A signature encoded as a string.
+
+	"""
+
 	signer = Crypto.Signature.PKCS1_PSS.new(key)
 	file_hash = hash_file_sha512(the_file)
 	return signer.sign(file_hash)
