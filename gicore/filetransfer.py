@@ -94,7 +94,12 @@ def get_file(server, path, pub_key, timeout, max_size):
 		log.info("Getting file '%s'", path)
 		file_path = _get_file_simple(con, path, max_size)
 		log.info("Getting signature for file '%s'", path)
-		sig_path = _get_file_simple(con, path + ".sig", max_size)
+		try:
+			sig_path = _get_file_simple(con, path + ".sig", max_size)
+		except IOError:
+			# If server returns bad response (ex: 404) we want to consider it
+			# a verification error.
+			raise errors.VerificationError("%s/%s" % (server, path))
 
 		log.info("Verifying file+signature.")
 		# if pub_key_path != None:

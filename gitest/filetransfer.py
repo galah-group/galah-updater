@@ -89,6 +89,7 @@ class TestFileTransfer(unittest.TestCase):
 
 		# Create and sign some files in the temp directory
 		nfiles = int(os.environ.get("NFILES", 2))
+		test_file_size = int(os.environ.get("FILE_SIZE", 2048))
 		assert nfiles > 0
 		self.test_files = []
 		for i in xrange(nfiles):
@@ -97,11 +98,37 @@ class TestFileTransfer(unittest.TestCase):
 			filepath = os.path.join(self.temp_dir, filename)
 			# Make the file
 			with open(filepath, "wb") as f:
-				f.write(get_pseudo_random_bytes(
-					int(os.environ.get("FILE_SIZE", 2048))))
+				f.write(get_pseudo_random_bytes(test_file_size))
 			# Create signature
 			with open(filepath, "rb") as f:
 				sig = gicore.signatures.sign_file(f, self.key)
+			# Save signature
+			with open(filepath + ".sig", "wb") as f:
+				f.write(sig)
+
+		self.no_sig_test_files = []
+		for i in xrange(nfiles):
+			filename = "no-sig-test%s.txt" % (i, )
+			self.no_sig_test_files.append(filename)
+			filepath = os.path.join(self.temp_dir, filename)
+			with open(filepath, "wb") as f:
+				f.write(get_pseudo_random_bytes(test_file_size))
+
+		bad_key = Crypto.PublicKey.RSA.generate(
+			bits = int(os.environ.get("BAD_KEYSIZE", 2048)),
+			randfunc = get_pseudo_random_bytes
+		)
+		self.bad_sig_test_files = []
+		for i in xrange(nfiles):
+			filename = "bad-sig-test%s.txt" % (i, )
+			self.no_sig_test_files.append(filename)
+			filepath = os.path.join(self.temp_dir, filename)
+			# Create file
+			with open(filepath, "wb") as f:
+				f.write(get_pseudo_random_bytes(test_file_size))
+			# Create signature
+			with open(filepath, "rb") as f:
+				sig = gicore.signatures.sign_file(f, bad_key)
 			# Save signature
 			with open(filepath + ".sig", "wb") as f:
 				f.write(sig)
@@ -156,6 +183,17 @@ class TestFileTransfer(unittest.TestCase):
 				with open(retrieved_file, "rb") as received:
 					self.compare_files(original, received)
 
+		# Ensure that max_size is enforced.
+		for i in self.test_files:
+			self.assertRaises(IOError,
+				gicore.filetransfer._get_file_simple,
+				# args to _get_file_simple
+				con = con,
+				path = "/" + i,
+				max_size = int(os.environ.get("FILE_SIZE", 2048)) - 1
+			)
+
+
 	def test_get_file(self):
 		for i in self.test_files:
 			try:
@@ -168,6 +206,17 @@ class TestFileTransfer(unittest.TestCase):
 				)
 			except gicore.errors.VerificationError as e:
 				self.fail("Validation failed on valid file: %s" % (str(e), ))
+
+		for i in self.no_sig_test_files + self.bad_sig_test_files:
+			self.assertRaises(gicore.errors.VerificationError,
+				gicore.filetransfer.get_file,
+				# Args to get_file...
+				server = "%s:%d" % self.listen_on,
+				path = "/" + i,
+				pub_key = self.key,
+				timeout = 5,
+				max_size = int(os.environ.get("FILE_SIZE", 2048)) + 256
+			)
 
 if __name__ == "__main__":
     unittest.main()

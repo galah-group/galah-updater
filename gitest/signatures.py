@@ -25,7 +25,7 @@ class TestSignatures(unittest.TestCase):
 				bits = int(os.environ.get("KEYSIZE", 2048)),
 				randfunc = get_pseudo_random_bytes
 			))
-		assert(len(self.keys) > 1)
+		assert len(self.keys) > 1
 
 	def test_signing(self):
 		message = get_pseudo_random_bytes(
