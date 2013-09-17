@@ -28,10 +28,9 @@ class TestSignatures(unittest.TestCase):
 		assert len(self.keys) > 1
 
 	def test_signing(self):
-		message = get_pseudo_random_bytes(
-			int(os.environ.get("MESSAGE_SIZE", 2000)))
-		bad_message = get_pseudo_random_bytes(
-			int(os.environ.get("MESSAGE_SIZE", 2000)))
+		message_size = int(os.environ.get("MESSAGE_SIZE", 2000))
+		message = get_pseudo_random_bytes(message_size)
+		bad_message = get_pseudo_random_bytes(message_size)
 
 		for i, k in enumerate(self.keys):
 			message_file = StringIO.StringIO(message)
