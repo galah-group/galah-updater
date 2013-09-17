@@ -13,9 +13,6 @@ import os
 import pkg_resources
 import stat
 
-RSA_KEY_SIZE = 16384
-"The number of bits in the RSA keys used in signatures."
-
 def _get_file_simple(con, path, max_size):
 	"""
 	Performs a simple HTTP GET request to retrieve a particular file and stores
@@ -102,12 +99,6 @@ def get_file(server, path, pub_key, timeout, max_size):
 			raise errors.VerificationError("%s/%s" % (server, path))
 
 		log.info("Verifying file+signature.")
-		# if pub_key_path != None:
-		# 	with open(pub_key_path, "rb") as f:
-		# 		pub_key_raw = f.read()
-		# else:
-		# 	pub_key_raw = pkg_resources.resource_string(
-		# 		"gicore", "gg-release-key.pub.der")
 		verified = signatures.verify_file(
 				open(file_path, "rb"), open(sig_path, "rb"), pub_key)
 		if not verified:

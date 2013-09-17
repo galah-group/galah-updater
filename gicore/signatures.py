@@ -16,7 +16,7 @@ import Crypto.Hash.SHA512
 import Crypto.PublicKey.RSA
 import Crypto.Signature.PKCS1_PSS
 
-def hash_file_sha512(the_file):
+def _hash_file_sha512(the_file):
 	CHUNK_SIZE = 1024
 	file_hash = Crypto.Hash.SHA512.new()
 	while True:
@@ -45,16 +45,8 @@ def verify_file(the_file, signature_file, key):
 
 	"""
 
-	# pub_key_path = config.get("gicore/PUB_KEY_PATH")
-	# if pub_key_path != None:
-	# 	with open(pub_key_path, "rb") as f:
-	# 		pub_key_raw = f.read()
-	# else:
-	# 	pub_key_raw = pkg_resources.resource_string(
-	# 		"gicore", "gg-release-key.pub.der")
-
 	verifier = Crypto.Signature.PKCS1_PSS.new(key)
-	file_hash = hash_file_sha512(the_file)
+	file_hash = _hash_file_sha512(the_file)
 	signature = signature_file.read()
 	return verifier.verify(file_hash, signature)
 
@@ -71,5 +63,5 @@ def sign_file(the_file, key):
 	"""
 
 	signer = Crypto.Signature.PKCS1_PSS.new(key)
-	file_hash = hash_file_sha512(the_file)
+	file_hash = _hash_file_sha512(the_file)
 	return signer.sign(file_hash)
