@@ -45,14 +45,14 @@ def _get_file_simple(con, path, max_size):
 			if bytes_read > max_file_size:
 				raise IOError("File exceeds max download size.")
 	except:
-		os.remove(path)
-		raise
-	finally:
 		# f could be none if the call to fdopen raises an exception.
 		if f is None:
 			os.close(os_handle)
 		else:
 			f.close()
+		os.remove(path)
+		raise
+	f.close()
 	os.chmod(path, stat.S_IRUSR)
 	return path
 
