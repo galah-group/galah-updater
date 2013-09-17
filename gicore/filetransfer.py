@@ -1,28 +1,9 @@
-"""
-This module assists with getting the source code of particular versions of
-software the installer needs. This is done by hitting a Galah Group endpoint
-and asking for where to get the software desired.
-
-We do not hit the end point using an HTTPS request because HTTP provides a lot
-of features that we don't need, and the best way to use it would be through a
-layer of abstraction like Requests. This is a very security-concious module
-thus we want as little abstraction as possible.
-
-In addition, I do not want to use a certificate authority. The installer ships
-with a self-signed certificate to compare against the server's and the
-server needs to match up exactly to that. This is significantly better than
-having to bring in another party.
-
-Thus we use the protocol described under `docs/DiscoveryProtocol.md`.
-
-"""
-
 import logging
-log = logging.getlogger("gi.discovery")
+log = logging.getLogger("gi.discovery")
 
 # gicore
-import config
 import errors
+import signatures
 
 # stdlib
 import urlparse
@@ -30,8 +11,9 @@ import httplib
 import tempfile
 import os
 import pkg_resources
+import stat
 
-RSA_KEY_LENGTH = 16384
+RSA_KEY_SIZE = 16384
 "The number of bits in the RSA keys used in signatures."
 
 def _get_file_simple(con, path, max_size):
@@ -53,18 +35,18 @@ def _get_file_simple(con, path, max_size):
 	os_handle, path = tempfile.mkstemp()
 	f = None
 	try:
-		f = os.fdopen(os_handle, mode = "wb")
-		chunk_size = chunk_size
+		f = os.fdopen(os_handle, "wb")
 		max_file_size = max_size
 		bytes_read = 0
 		CHUNK_SIZE = 1024
 		while True:
-			chunk = response.read(1024)
+			chunk = response.read(CHUNK_SIZE)
+			if len(chunk) == 0:
+				break
 			f.write(chunk)
-			bytes_read += chunk_size
+			bytes_read += len(chunk)
 			if bytes_read > max_file_size:
 				raise IOError("File exceeds max download size.")
-		return path
 	except:
 		os.remove(path)
 		raise
@@ -74,23 +56,30 @@ def _get_file_simple(con, path, max_size):
 			os.close(os_handle)
 		else:
 			f.close()
+	os.chmod(path, stat.S_IRUSR)
+	return path
 
-def get_file(server, path, timeout, max_size):
+def get_file(server, path, pub_key, timeout, max_size):
 	"""
-	Securely retrieves a file from the configured discovery server (set by
-	`gicore/DISCOVERY_SERVER`).
+	Securely retrieves a file from the given server.
 
 	The file's origin and integrity is checked, but the transfer of the file is
 	not encrypted, thus observers could peek into your traffic and see what is
 	being transferred, they would not be able to modify the file or swap it for
-	their own however (unless of course they have the release private key).
+	their own however without verification failing.
 
-	:param server: The hostname or IP address of the server.
+	:param server: The hostname or IP address of the server. Can contain a port
+			number (ex: `localhost:8080`).
 	:param path: The path of the file on the server (ex: `/folder/file.json`).
+	:param pub_key: The public key to use when verifying the downloaded file as
+			a string (`str`).
 	:param timeout: The number of seconds to wait for each blocking network
 			operation (such as connection or waiting for the next chunk of
 			data).
 	:param max_size: The maximum size of the file in bytes.
+
+	:raises errors.VerificationError: When the file could not be verified as
+			authentic for whatever reason.
 
 	:returns: A path to the downloaded files as a tuple (file, signature).
 			Both file's permissions are set to 600 and owned by the current
@@ -103,19 +92,20 @@ def get_file(server, path, timeout, max_size):
 	sig_path = None
 	try:
 		log.info("Getting file '%s'", path)
-		file_path = get_file_simple(con, path, max_size)
+		file_path = _get_file_simple(con, path, max_size)
 		log.info("Getting signature for file '%s'", path)
-		sig_path = get_file_simple(con, path + ".sig", max_size)
+		sig_path = _get_file_simple(con, path + ".sig", max_size)
 
 		log.info("Verifying file+signature.")
-		pub_key_path = config.get("gicore/PUB_KEY_PATH")
-		if pub_key_path != None:
-			with open(pub_key_path, "rb") as f:
-				pub_key_raw = f.read()
-		else:
-			pub_key_raw = pkg_resources.resource_string(
-				"gicore", "gg-release-key.pub.der")
-		if not verify_file(file_path, sig_path):
+		# if pub_key_path != None:
+		# 	with open(pub_key_path, "rb") as f:
+		# 		pub_key_raw = f.read()
+		# else:
+		# 	pub_key_raw = pkg_resources.resource_string(
+		# 		"gicore", "gg-release-key.pub.der")
+		verified = signatures.verify_file(
+				open(file_path, "rb"), open(sig_path, "rb"), pub_key)
+		if not verified:
 			raise errors.VerificationError("%s/%s" % (server, path))
 	except:
 		if file_path is not None:
