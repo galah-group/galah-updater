@@ -1,7 +1,13 @@
 #!/usr/bin/env python
 
 """
-Code adapted from https://github.com/sashka/atomicfile.
+.. note::
+
+    This code was adapted from code available at
+    https://github.com/sashka/atomicfile. It was originally licensed under
+    the MIT license, but any modifications since then are not. Please see
+    the *AtomicFile Licensing Considerations* document for more
+    information.
 
 """
 

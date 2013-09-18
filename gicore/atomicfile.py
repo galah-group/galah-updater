@@ -1,13 +1,20 @@
 """
 This module helps support atomic filesystem operations.
 
-:note: Atomic in this context means that a particular operation will either
-        succeed or fail, but will not corrupt data. A strong guarantee against
-        data corruption is impossible as far as I know, but this module gets
-        as close as possible.
+.. note::
 
-:note: This code was adapted from code available at
-        https://github.com/sashka/atomicfile
+    Atomic in this context means that a particular operation will either
+    succeed or fail, but will not corrupt data. A strong guarantee against
+    data corruption is impossible as far as I know, but this module gets
+    as close as possible.
+
+.. note::
+
+    This code was adapted from code available at
+    https://github.com/sashka/atomicfile. It was originally licensed under
+    the MIT license, but any modifications since then are not. Please see
+    the *AtomicFile Licensing Considerations* document for more
+    information.
 
 """
 
