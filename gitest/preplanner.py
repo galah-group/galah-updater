@@ -12,7 +12,7 @@ class TestSignatures(unittest.TestCase):
     def setUp(self):
         self.all_packages = {
             "a": ["1", "2", "3", "4", "5", "6"],
-            "b": ["alpha", "bravo", "charlie", "echo"] # disorderly
+            "b": ["alpha", "bravo", "charlie", "echo"]
         }
 
     def test_basic_upgrade(self):
