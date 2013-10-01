@@ -18,11 +18,11 @@ All files should be verified against its signature and the trusted public key di
 
 ### DOS
 
-Because Galah-Installer uses HTTP for its communication with the outside world, it may be vulnerable to a man-in-the-middle attack where the attacker DoS's the program by sending an HTTP response that is super massive and fills up the file system. This attack vector is unlikely as it requires strong access to the network, however, it can be mitigated through the use of a paranoid HTTP library.
+Because Galah-Installer uses HTTP for its communication with the outside world, it may be vulnerable to a man-in-the-middle attack where the attacker DoS's the program by sending an HTTP response that is super massive and fills up the file system. This attack vector is unlikely as it requires strong access to the network, however, it can be mitigated through the use of a paranoid HTTP library. This will not be taken care of until after the initial release due to its high cost.
 
 ### Compromised Private Key
 
-Though vulnerabilities due to Galah-Installer's use of cryptographic functions are certainly possible that would allow successful attacks, it is doubtful that such an attack would occur. A more likely attack is compromise of the key used to make releases combined with an attack to trick the installer into pulling down a malicious file. Such an attack would be very dangerous.
+Though vulnerabilities due to Galah-Installer's use of cryptographic functions are certainly possible that would allow successful attacks, it is doubtful that such an attack would occur. A more likely attack is compromise of the key used to make releases combined with an attack to trick the installer into pulling down a malicious file. Such an attack would be very dangerous and could potentially infect all installations.
 
 ## Discovery
 
@@ -60,6 +60,9 @@ After the Galah-Installer has decided that it needs to upgrade (or downgrade) it
 {
 	"name": "galah-core/models",
 	"version": "1.0.3",
+
+	"embedded": false,
+
 	"compatible-with": {
 		"galah-core/shepherd": ["1.0.2", "1.0.3"],
 		"galah-core/sheep": ["1.0.2", "1.0.3"],
@@ -67,10 +70,10 @@ After the Galah-Installer has decided that it needs to upgrade (or downgrade) it
 		"galah-core/models": ["1.0.3"],
 		"redis": ["1.0.0"]
 	},
-	"require-on-system": {
-		"somelibrary": ["1.0.2", "1.0.3"]
-	},
 	"require-offline": ["galah-core/shepherd", "galah-core/web"],
+
+
+
 	"migrations": ["mongodb"],
 	"installer-mirrors": ["http://gi.galahgroup.com/files/installer/galah-core/models/1.0.3.py"],
 	"archive-mirrors": ["http://gi.galahgroup.com/files/archive/galah-core/models/1.0.3.tar.gz"],
