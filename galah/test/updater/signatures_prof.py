@@ -13,8 +13,8 @@ a file's signature.
 """
 
 # internal
-import gicore.signatures
-import gicore.filetransfer
+import galah.updater.core.signatures as signatures
+import galah.updater.core.filetransfer as filetransfer
 
 # stdlib
 import cProfile as profile
@@ -30,7 +30,7 @@ def get_pseudo_random_bytes(nbytes):
 	return "".join([chr(random.getrandbits(8)) for i in xrange(nbytes)])
 
 key = Crypto.PublicKey.RSA.importKey(
-	pkg_resources.resource_string("gitest.data", "test_rsa.pem"))
+	pkg_resources.resource_string("data", "test_rsa.pem"))
 
 message_size = int(os.environ.get("MESSAGE_SIZE", 100000))
 print "Using message with %d bytes" % (message_size, )
@@ -38,8 +38,8 @@ message = get_pseudo_random_bytes(message_size)
 message_file = StringIO.StringIO(message)
 
 print "Signing message"
-sig = gicore.signatures.sign_file(message_file, key)
+sig = signatures.sign_file(message_file, key)
 sig_file = StringIO.StringIO(sig)
 
-print "Profiling gicore.signatures.verify_file"
-profile.run("gicore.signatures.verify_file(message_file, sig_file, key)")
+print "Profiling signatures.verify_file"
+profile.run("signatures.verify_file(message_file, sig_file, key)")

@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 # internal
-import gicore.signatures
-import gicore.filetransfer
-import gicore.errors
+import galah.updater.core.signatures as signatures
+import galah.updater.core.filetransfer as filetransfer
+import galah.updater.core.errors as errors
 
 # pycrypto
 import Crypto.PublicKey.RSA
@@ -85,7 +85,7 @@ class TestFileTransfer(unittest.TestCase):
 		self.temp_dir = tempfile.mkdtemp()
 		random.seed(int(os.environ.get("RANDOM_SEED", 1)))
 		self.key = Crypto.PublicKey.RSA.importKey(
-			pkg_resources.resource_string("gitest.data", "test_rsa.pem"))
+			pkg_resources.resource_string("data", "test_rsa.pem"))
 
 		# Create and sign some files in the temp directory
 		nfiles = int(os.environ.get("NFILES", 2))
@@ -101,7 +101,7 @@ class TestFileTransfer(unittest.TestCase):
 				f.write(get_pseudo_random_bytes(test_file_size))
 			# Create signature
 			with open(filepath, "rb") as f:
-				sig = gicore.signatures.sign_file(f, self.key)
+				sig = signatures.sign_file(f, self.key)
 			# Save signature
 			with open(filepath + ".sig", "wb") as f:
 				f.write(sig)
@@ -128,7 +128,7 @@ class TestFileTransfer(unittest.TestCase):
 				f.write(get_pseudo_random_bytes(test_file_size))
 			# Create signature
 			with open(filepath, "rb") as f:
-				sig = gicore.signatures.sign_file(f, bad_key)
+				sig = signatures.sign_file(f, bad_key)
 			# Save signature
 			with open(filepath + ".sig", "wb") as f:
 				f.write(sig)
@@ -163,7 +163,7 @@ class TestFileTransfer(unittest.TestCase):
 		con = httplib.HTTPConnection(self.listen_on[0], self.listen_on[1],
 			timeout = 5)
 		for i in self.test_files:
-			retrieved_file = gicore.filetransfer._get_file_simple(
+			retrieved_file = filetransfer._get_file_simple(
 				con = con,
 				path = "/" + i,
 				max_size = int(os.environ.get("FILE_SIZE", 2048)) + 256
@@ -186,7 +186,7 @@ class TestFileTransfer(unittest.TestCase):
 		# Ensure that max_size is enforced.
 		for i in self.test_files:
 			self.assertRaises(IOError,
-				gicore.filetransfer._get_file_simple,
+				filetransfer._get_file_simple,
 				# args to _get_file_simple
 				con = con,
 				path = "/" + i,
@@ -197,19 +197,19 @@ class TestFileTransfer(unittest.TestCase):
 	def test_get_file(self):
 		for i in self.test_files:
 			try:
-				gicore.filetransfer.get_file(
+				filetransfer.get_file(
 					server = "%s:%d" % self.listen_on,
 					path = "/" + i,
 					pub_key = self.key,
 					timeout = 5,
 					max_size = int(os.environ.get("FILE_SIZE", 2048)) + 256
 				)
-			except gicore.errors.VerificationError as e:
+			except errors.VerificationError as e:
 				self.fail("Validation failed on valid file: %s" % (str(e), ))
 
 		for i in self.no_sig_test_files + self.bad_sig_test_files:
-			self.assertRaises(gicore.errors.VerificationError,
-				gicore.filetransfer.get_file,
+			self.assertRaises(errors.VerificationError,
+				filetransfer.get_file,
 				# Args to get_file...
 				server = "%s:%d" % self.listen_on,
 				path = "/" + i,

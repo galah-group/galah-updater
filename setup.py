@@ -11,23 +11,20 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 setup(
-    name = "galah-installer",
+    name = "galah-updater",
     version = read("VERSION").strip(),
     author = "Galah Group LLC and other contributers",
     author_email = "john@galahgroup.com",
-    description = "A tool for installing and maintaining Galah.",
+    description = "A package manager for Galah.",
     license = "Apache v2.0",
     keywords = "galah",
-    url = "https://www.github.com/galah-group/galah-installer",
-    packages = None,
+    url = "https://www.github.com/galah-group/galah-updater",
+    packages = find_packages(),
+    namespace_packages = ["galah", "galah.test"],
     long_description = read("README.rst"),
-    entry_points = {
-        "console_scripts": [
-            "galah-installer = installer.main:main"
-        ]
-    },
     install_requires = [
-        "PyYAML==3.10"
+        "PyYAML==3.10",
+        "PyCrypto==2.6"
     ],
     classifiers = [
         "License :: OSI Approved :: Apache Software License",

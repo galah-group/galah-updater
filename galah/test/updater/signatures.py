@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # internal
-import gicore.signatures
+import galah.updater.core.signatures as signatures
 
 # pycrypto
 import Crypto.PublicKey.RSA
@@ -36,26 +36,26 @@ class TestSignatures(unittest.TestCase):
 			message_file = StringIO.StringIO(message)
 			bad_message_file = StringIO.StringIO(bad_message)
 
-			sig = gicore.signatures.sign_file(message_file, k)
+			sig = signatures.sign_file(message_file, k)
 			sig_file = StringIO.StringIO(sig)
-			bad_sig = gicore.signatures.sign_file(
+			bad_sig = signatures.sign_file(
 				message_file, self.keys[(i + 1) % len(self.keys)])
 			bad_sig_file = StringIO.StringIO(bad_sig)
 
 			message_file.seek(0)
 			sig_file.seek(0)
-			self.assertTrue(gicore.signatures.verify_file(
+			self.assertTrue(signatures.verify_file(
 				message_file, sig_file, k))
 
 			bad_message_file.seek(0)
 			sig_file.seek(0)
-			self.assertFalse(gicore.signatures.verify_file(
+			self.assertFalse(signatures.verify_file(
 				bad_message_file, sig_file, k))
 
 			# Signature for correct message but with wrong key
 			message_file.seek(0)
 			bad_sig_file.seek(0)
-			self.assertFalse(gicore.signatures.verify_file(
+			self.assertFalse(signatures.verify_file(
 				message_file, bad_sig_file, k))
 
 if __name__ == '__main__':

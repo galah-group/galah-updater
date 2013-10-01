@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-# gicore
-import gicore.preplanner
-from gicore.preplanner import UAInstall, UAMigrate
+# internal
+import galah.updater.core.preplanner as preplanner
+from galah.updater.core.preplanner import UAInstall, UAMigrate
 
 # stdlib
 import unittest
@@ -22,7 +22,7 @@ class TestSignatures(unittest.TestCase):
             UAMigrate(name = "a", from_version = "1", to_version = "2"),
             UAInstall(name = "a", version = "2")
         ]
-        result = gicore.preplanner.determine_preactions(self.all_packages,
+        result = preplanner.determine_preactions(self.all_packages,
             installed_packages, desired_state)
         self.assertEquals(expected_result, result)
 
@@ -33,7 +33,7 @@ class TestSignatures(unittest.TestCase):
             UAMigrate(name = "a", from_version = "2", to_version = "1"),
             UAInstall(name = "a", version = "1")
         ]
-        result = gicore.preplanner.determine_preactions(self.all_packages,
+        result = preplanner.determine_preactions(self.all_packages,
             installed_packages, desired_state)
         self.assertEquals(expected_result, result)
 
@@ -46,7 +46,7 @@ class TestSignatures(unittest.TestCase):
             UAMigrate(name = "a", from_version = "3", to_version = "4"),
             UAInstall(name = "a", version = "4")
         ]
-        result = gicore.preplanner.determine_preactions(self.all_packages,
+        result = preplanner.determine_preactions(self.all_packages,
             installed_packages, desired_state)
         self.assertEquals(expected_result, result)
 
@@ -59,7 +59,7 @@ class TestSignatures(unittest.TestCase):
             UAMigrate(name = "a", from_version = "2", to_version = "1"),
             UAInstall(name = "a", version = "1")
         ]
-        result = gicore.preplanner.determine_preactions(self.all_packages,
+        result = preplanner.determine_preactions(self.all_packages,
             installed_packages, desired_state)
         self.assertEquals(expected_result, result)
 
@@ -78,7 +78,7 @@ class TestSignatures(unittest.TestCase):
                 to_version = "alpha"),
             UAInstall(name = "b", version = "alpha")
         ]
-        result = gicore.preplanner.determine_preactions(self.all_packages,
+        result = preplanner.determine_preactions(self.all_packages,
             installed_packages, desired_state)
         self.assertEquals(expected_result, result)
 
